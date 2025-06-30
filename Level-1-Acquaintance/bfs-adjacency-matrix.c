@@ -7,13 +7,14 @@ void bfsFindConnected(size_t n, size_t startNode, bool A[n][n], bool visited[n])
     return;
   }
   size_t queue[n];
-  unsigned front = -1, rear = -1;
+  signed front = -1, rear = -1;
   size_t path[n];
   
   // Enqueue startNode and mark it as visited
   queue[++rear] = startNode;
   visited[startNode] = true;
 
+  printf("Edges: ");
   while (front != rear) {
     // Dequeue the node from the beginning of the queue and add it to the path
     size_t currentNode = queue[++front];
@@ -24,12 +25,13 @@ void bfsFindConnected(size_t n, size_t startNode, bool A[n][n], bool visited[n])
       if (A[i][currentNode] && !visited[i]) {
         visited[i] = true;
         queue[++rear] = i;
+        printf("(%zu, %zu) ", currentNode, i);
       }
     }
   }
-  printf("Path starting with node %ld: ", startNode);
+  printf(", path starting with node %zu: ", startNode);
   for (size_t i = 0; i <= front; ++i)
-    printf("%ld, ", path[i]);
+    printf("%zu, ", path[i]);
   printf("\n");
 }
 

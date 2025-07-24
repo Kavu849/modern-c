@@ -8,8 +8,12 @@ double my_strtod(char const s[static 1]) {
   case '-':
     isNegative = true;
     ++i;
+    break;
   case '+':
     ++i;
+    break;
+  default:
+    break;
   }
 
   double res = 0.0;
@@ -20,17 +24,25 @@ double my_strtod(char const s[static 1]) {
       ++i;
       break;
     }
+    if (s[i] < '0' || s[i] > '9') {
+      printf("Incorrect character encountered!\n");
+      break;
+    }
     c = s[i] - '0';
     res *= 10;
     res += c;
     ++i;
   }
 
-  unsigned base = 10;
+  double fracMultiplier = 0.1;
   while (s[i]) { // evaluate the fractional part
+    if (s[i] < '0' || s[i] > '9') {
+      printf("Incorrect character encountered!\n");
+      break;
+    }
     c = s[i] - '0';
-    res += c / base;
-    base /= 10;
+    res += c * fracMultiplier;
+    fracMultiplier /= 10;
   }
 
   if (isNegative)

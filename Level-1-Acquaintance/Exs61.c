@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 double my_strtod(char const s[static 1]) {
   size_t i = 0;
@@ -33,7 +34,7 @@ double my_strtod(char const s[static 1]) {
     res += c;
     ++i;
   }
-
+  
   double fracMultiplier = 0.1;
   while (s[i]) { // evaluate the fractional part
     if (s[i] < '0' || s[i] > '9') {
@@ -43,6 +44,7 @@ double my_strtod(char const s[static 1]) {
     c = s[i] - '0';
     res += c * fracMultiplier;
     fracMultiplier /= 10;
+    ++i;
   }
 
   if (isNegative)

@@ -13,47 +13,57 @@ int main(int argc, char* argv[argc+1]) {
   if (argc > 1 && (strcmp(argv[1], "-n") == 0))
       printLineNumbers = true;
 
+  int startArg = 1;
+  if (printLineNumbers)
+    ++startArg;
+
   if (argc == 1 || (argc == 2 && printLineNumbers)) {
-    FILE* instream = stdin;
-    if (instream) {
-      size_t line = 1;
-      while (fgets(buffer, buf_max, instream)) {
-        size_t len = strlen(buffer);
-        bool lineEnded = (len > 0 && buffer[len - 1] == '\n') ? true : false;
-        if (printLineNumbers && lineEnded) {
-          printf("%zu ", line);
-          ++line;
-        }
-        fputs(buffer, stdout);
+    size_t line = 1;
+    bool previousLinePartial = false;
+
+    while (fgets(buffer, buf_max, stdin)) {
+      size_t len = strlen(buffer);
+      bool lineEnded = (len > 0 && buffer[len - 1] == '\n') ? true : false;
+      
+      if (printLineNumbers && !previousLinePartial) {
+        printf("%zu ", line);
       }
-      fclose(instream);
-      ret = EXIT_SUCCESS;
-    } else {
-      printf("Could not read from stdin\n");
-      perror(0);
-      errno = 0;
+
+      fputs(buffer, stdout);
+
+      if (lineEnded) {
+        ++line;
+        previousLinePartial = false;
+      } else {
+        previousLinePartial = true;
+      }
     }
+    ret = EXIT_SUCCESS;
     return ret;
   }
 
-  for (int i = 1; i < argc; ++i) {        // Process args
-    if (i == 1 && printLineNumbers)
-      continue;
-
+  for (int i = startArg; i < argc; ++i) {        // Process args
     FILE* instream = fopen(argv[i], "r"); // as filenames
     if (instream) {
       size_t line = 1;
-      bool pendingNewline = false;
+      bool previousLinePartial = false;
 
       while (fgets(buffer, buf_max, instream)) {
         size_t len = strlen(buffer);
         bool lineEnded = (len > 0 && buffer[len - 1] == '\n') ? true : false;
-        if (printLineNumbers && (lineEnded || !pendingNewline)) {
+        
+        if (printLineNumbers && !previousLinePartial) {
           printf("%zu ", line);
-          ++line;
         }
+        
         fputs(buffer, stdout);
-        pendingNewline = !lineEnded;
+        
+        if (lineEnded) {
+          ++line;
+          previousLinePartial = false;
+        } else {
+          previousLinePartial = true;
+        }
       }
       fclose(instream);
       ret = EXIT_SUCCESS;

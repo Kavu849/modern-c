@@ -15,7 +15,13 @@ void mergeArrays(int A[], int l, int m, int r) {
   int n1 = m - l + 1;
   int n2 = r - m;
 
-  int L[n1], R[n2];
+  // Allocate memory for the temporary arrays on the heap
+  int* L = (int*)malloc(n1 * sizeof(int));
+  int* R = (int*)malloc(n2 * sizeof(int));
+  if (L == nullptr || R == nullptr) {
+    perror("Failed to allocate memory for array");
+    exit(EXIT_FAILURE);
+  }
 
   for (i = 0; i < n1; ++i)
     L[i] = A[l + i];
@@ -50,6 +56,9 @@ void mergeArrays(int A[], int l, int m, int r) {
     ++j;
     ++k;
   }
+
+  free(L);
+  free(R);
 }
 
 void mergeSort(int A[], int l, int r) {
@@ -106,6 +115,10 @@ int main(int argc, char* argv[argc+1]) {
   size_t testSizes[] = {
     1000000,
     5000000,
+    9000000,
+    10000000,
+    15000000,
+    20000000
   }; 
   size_t numEl = sizeof(testSizes) / sizeof(testSizes[0]);
   

@@ -48,8 +48,8 @@ bool ShouldMerge(size_t i, size_t j, size_t k, size_t l, size_t width, size_t Un
   size_t ind1 = i * width + j;
   size_t ind2 = k * width + l;
 
-  size_t root1 = Find(ind1, UnionFind);
-  size_t root2 = Find(ind2, UnionFind);
+  size_t root1 = FindCompress(ind1, UnionFind);
+  size_t root2 = FindCompress(ind2, UnionFind);
   
   // If the roots are the same, don't merge (becasue already merged)
   if (root1 == root2)
@@ -125,7 +125,7 @@ int main(int argc, char* argv[argc+1]) {
 
   unsigned char *Pixels = malloc(width * height * sizeof(unsigned char));
   if (!Pixels) {
-    perror("Pixels malloc failed\n");
+    perror("Pixels malloc failed");
     exit(1);
   }
 
@@ -136,14 +136,14 @@ int main(int argc, char* argv[argc+1]) {
   // Define the array of statistics
   RegionStats *Stats = malloc(width * height * sizeof(RegionStats));
   if (!Stats) {
-    perror("Stats malloc failed\n");
+    perror("Stats malloc failed");
     exit(1);
   }
 
   // Define the Union Find data structure, and fill the Stats array
   size_t *UnionFind = malloc (width * height * sizeof(size_t));
   if (!UnionFind) {
-    perror("UnionFind malloc failed\n");
+    perror("UnionFind malloc failed");
     exit(1);
   }
 
@@ -154,13 +154,25 @@ int main(int argc, char* argv[argc+1]) {
       Stats[i * width + j].SumOfVals = Pixels[i * width + j];
     }
   }
-  printf("Checkpoint\n");
+
   // Repeatedly call MergeLineByLine until no more merges are possible
   while (MergeLineByLine(width, height, UnionFind, Stats));
 
   /*
     Write the image then destroy it.
   */
+  unsigned char *PixelsOut = malloc(width * height * sizeof(unsigned char));
+  for (size_t i = 0; i < height; ++i) {
+    for (size_t j = 0; j < width; ++j) {
+      size_t ind = i * width + j;
+      size_t root = FindCompress(ind, UnionFind);
+      unsigned char val = Stats[root].SumOfVals / Stats[root].NumOfPixels;
+      PixelsOut[ind] = val;
+    }
+  }
+  MagickImportImagePixels(wand, 0, 0, width, height, "R", CharPixel, PixelsOut);
+  free(PixelsOut);
+
   status = MagickWriteImages(wand ,argv[2], MagickTrue);
   if (status == MagickFalse)
     ThrowWandException(wand);

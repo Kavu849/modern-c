@@ -31,12 +31,14 @@ size_t FindCompress(size_t ind, size_t UnionFind[]) {
   return root;
 }
 
-void Union(size_t ind1, size_t ind2, size_t UnionFind[]) {
+void Union(size_t ind1, size_t ind2, size_t UnionFind[], RegionStats Stats[]) {
   size_t root1 = FindCompress(ind1, UnionFind);
-  size_t root2 = Find(ind2, UnionFind);
+  size_t root2 = FindCompress(ind2, UnionFind);
   if (root1 != root2) {
     FindReplace(ind2, root1, UnionFind);
     UnionFind[root2] = root1;
+    Stats[root1].NumOfPixels += Stats[root2].NumOfPixels;
+    Stats[root1].SumOfVals += Stats[root2].SumOfVals;
   }
 }
 
@@ -53,13 +55,35 @@ bool ShouldMerge(size_t i, size_t j, size_t k, size_t l, size_t width, size_t Un
   if (root1 == root2)
     return false;
 
-  double mean1 = Stats[root1].SumOfVals / Stats[root1].NumOfPixels;
-  double mean2 = Stats[root2].SumOfVals / Stats[root2].NumOfPixels;
+  double mean1 = (double)Stats[root1].SumOfVals / (double)Stats[root1].NumOfPixels;
+  double mean2 = (double)Stats[root2].SumOfVals / (double)Stats[root2].NumOfPixels;
   
   if (fabs(mean1 - mean2) < 5)
     return true;
-  else
-    return false;
+  return false;
+}
+
+bool MergeLineByLine(size_t width, size_t height, size_t UnionFind[], RegionStats Stats[]) {
+  bool flag = false; // flag to indicate if we merged any pixels
+  for (size_t i = 0; i < height; ++i) {
+    for (size_t j = 0; j < width; ++j) {
+      // test whether we should merge with the pixel to the left
+      if (j > 0 && ShouldMerge(i, j, i, j - 1, width, UnionFind, Stats)) {
+        size_t ind1 = i * width + j;
+        size_t ind2 = i * width + j - 1;
+        Union(ind1, ind2, UnionFind, Stats);
+        flag = true;
+      }
+      // test whether we should merge with the pixel to the top
+      if (i > 0 && ShouldMerge(i, j, i - 1, j, width, UnionFind, Stats)) {
+        size_t ind1 = i * width + j;
+        size_t ind2 = (i - 1) * width + j;
+        Union(ind1, ind2, UnionFind, Stats);
+        flag = true;
+      }
+    }
+  }
+  return flag;
 }
 
 int main(int argc, char* argv[argc+1]) {
@@ -98,26 +122,41 @@ int main(int argc, char* argv[argc+1]) {
   size_t width = MagickGetImageWidth(wand);
   size_t height = MagickGetImageHeight(wand);
   printf("Width: %zu, heigth: %zu\n", width, height);
-  unsigned char Pixels[height][width]; 
+
+  unsigned char *Pixels = malloc(width * height * sizeof(unsigned char));
+  if (!Pixels) {
+    perror("Pixels malloc failed\n");
+    exit(1);
+  }
+
   MagickBooleanType res =  MagickExportImagePixels(wand, 0, 0, width, height, "R", CharPixel, Pixels);
   if (res == MagickFalse)
     ThrowWandException(wand);
-  for (size_t i = 0; i < 100; ++i)
-    printf("[%zu, %zu] = %u, ", i, i, Pixels[i][i]);
 
   // Define the array of statistics
-  RegionStats Stats[height * width];
+  RegionStats *Stats = malloc(width * height * sizeof(RegionStats));
+  if (!Stats) {
+    perror("Stats malloc failed\n");
+    exit(1);
+  }
 
   // Define the Union Find data structure, and fill the Stats array
-  size_t UnionFind[height * width];
+  size_t *UnionFind = malloc (width * height * sizeof(size_t));
+  if (!UnionFind) {
+    perror("UnionFind malloc failed\n");
+    exit(1);
+  }
+
   for (size_t i = 0; i < height; ++i) {
     for (size_t j = 0; j < width; ++j) {
       UnionFind[i * width + j] = SIZE_MAX;
       Stats[i * width + j].NumOfPixels = 1;
-      Stats[i * width + j].SumOfVals = Pixels[i][j];
+      Stats[i * width + j].SumOfVals = Pixels[i * width + j];
     }
   }
-
+  printf("Checkpoint\n");
+  // Repeatedly call MergeLineByLine until no more merges are possible
+  while (MergeLineByLine(width, height, UnionFind, Stats));
 
   /*
     Write the image then destroy it.
@@ -127,6 +166,9 @@ int main(int argc, char* argv[argc+1]) {
     ThrowWandException(wand);
   wand = DestroyMagickWand(wand);
   MagickWandTerminus();
+  free(Pixels);
+  free(Stats);
+  free(UnionFind);
   return(0);
 }
 

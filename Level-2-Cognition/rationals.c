@@ -97,6 +97,12 @@ char const* rat_print(size_t len, char tmp[len], rat const* x) {
   return tmp;
 }
 
+char const* rat_normalize_print(size_t len, char tmp[len], rat const* x) {
+  rat r_copy = *x;
+  rat_normalize(&r_copy);
+  return rat_print(len, tmp, &r_copy);
+}
+
 int main(int argc, char* argv[argc + 1]) {
   return 0;
 }

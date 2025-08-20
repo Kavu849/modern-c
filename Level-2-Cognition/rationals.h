@@ -6,7 +6,7 @@
 typedef struct rat rat;
 
 struct rat {
-  bool sign;
+  bool sign; // sign == true iff '-'
   size_t num;
   size_t denom;
 };

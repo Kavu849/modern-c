@@ -86,6 +86,29 @@ rat* rat_extend(rat* rp, size_t f) {
   return rp;
 }
 
+rat* rat_sumup(rat* rp, rat y) {
+  size_t c = gcd(rp->denom, y.denom);
+  size_t ax = y.denom / c;
+  size_t bx = rp->denom / c;
+  rat_extend(rp, ax);
+  y = rat_get_extended(y, bx);
+  assert(rp->denom == y.denom);
+
+  if (rp->sign == y.sign) {
+    rp->num += y.num;
+  } else if (rp->num > y.num) {
+    rp->num -= y.num;
+  } else {
+    rp->num = y.num - rp->num;
+    rp->sign = !rp->sign;
+  }
+  return rat_normalize(rp);
+}
+
+rat* rat_rma(rat* rp, rat x, rat y) {
+  return rat_sumup(rp, rat_get_prod(x, y));
+}
+
 char const* rat_print(size_t len, char tmp[len], rat const* x) {
   if (x) {
     if (x->sign)
@@ -101,6 +124,13 @@ char const* rat_normalize_print(size_t len, char tmp[len], rat const* x) {
   rat r_copy = *x;
   rat_normalize(&r_copy);
   return rat_print(len, tmp, &r_copy);
+}
+
+rat* rat_dotproduct(rat rp[static 1], size_t n, rat const A[n], rat const B[n]) {
+  rat_init(rp, 0, 0, 1);
+  for (size_t i = 0; i < n; ++i)
+    rat_rma(rp, A[i], B[i]);
+  return rp;
 }
 
 int main(int argc, char* argv[argc + 1]) {

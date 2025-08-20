@@ -67,6 +67,36 @@ rat rat_get_sum(rat x, rat y) [[__unsequenced__]] {
   return rat_get_normal(x);
 }
 
+void rat_destroy(rat* rp) {
+  if (rp) *rp = (rat) {};
+}
+
+rat* rat_init(rat* rp, signed sign, size_t num, size_t denom) {
+  if (rp) *rp = rat_get(sign, num, denom);
+  return rp;
+}
+
+rat* rat_normalize(rat* rp) {
+  if (rp) *rp = rat_get_normal(*rp);
+  return rp;
+}
+
+rat* rat_extend(rat* rp, size_t f) {
+  if (rp) *rp = rat_get_extended(*rp, f);
+  return rp;
+}
+
+char const* rat_print(size_t len, char tmp[len], rat const* x) {
+  if (x) {
+    if (x->sign)
+      snprintf(tmp, len, "-%zu/%zu", x->num, x->denom);
+    else
+      snprintf(tmp, len, "+%zu/%zu", x->num, x->denom);
+  } else
+    tmp[0] = 0;
+  return tmp;
+}
+
 int main(int argc, char* argv[argc + 1]) {
   return 0;
 }

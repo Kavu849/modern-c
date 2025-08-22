@@ -61,6 +61,38 @@ void SplitText(TextBlob *FirstBlob, size_t Index) {
     SecondBlob->Next->Prev = SecondBlob;
 }
 
+// This function will merge the Blob it receives with the next one if it exists
+void JoinConsecutive(TextBlob* Blob) {
+  if (!Blob || !Blob->Next)
+    return;
+
+  // Allocate memory for the new Text
+  size_t NewLen = Blob->Len + Blob->Next->Len;
+  char* NewText = malloc(NewLen + 1);
+  if (!NewText) {
+    perror("malloc failed for NewText!");
+    exit(1);
+  }
+
+  memcpy(NewText, Blob->Text, Blob->Len);
+  memcpy(NewText + Blob->Len, Blob->Next->Text, Blob->Next->Len);
+  NewText[NewLen] = '\0';
+
+  free(Blob->Text);
+  free(Blob->Next->Text);
+
+  Blob->Text = NewText;
+  Blob->Len = NewLen;
+  TextBlob* TmpBlob = Blob->Next;
+  if (Blob->Next->Next) {
+    Blob->Next->Next->Prev = Blob;
+    Blob->Next = Blob->Next->Next;
+  } else
+    Blob->Next = nullptr;
+
+  free(TmpBlob);
+}
+
 TextBlob* CreateBlob(const char* s) {
   if (!s)
     return nullptr;
@@ -112,5 +144,6 @@ int main(int argc, char* argv[argc + 1]) {
   SplitText(Head, 2);
   PrintList(Head);
 
+  // Should think about release the memory when exiting
   return 0;
 }

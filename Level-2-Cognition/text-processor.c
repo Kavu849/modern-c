@@ -61,6 +61,56 @@ void SplitText(TextBlob *FirstBlob, size_t Index) {
     SecondBlob->Next->Prev = SecondBlob;
 }
 
+TextBlob* CreateBlob(const char* s) {
+  if (!s)
+    return nullptr;
+
+  TextBlob* Blob = malloc(sizeof(TextBlob));
+  if (!Blob) {
+    perror("malloc failed for Blob!");
+    exit(1);
+  }
+
+  size_t Length = strlen(s);
+  char* TempText = malloc(Length + 1);
+  if (!TempText) {
+    perror("malloc failed for TempText!");
+    free(Blob);
+    exit(1);
+  }
+
+  memcpy(TempText, s, Length);
+  TempText[Length] = '\0';
+
+  Blob->Text = TempText;
+  Blob->Len = Length;
+  Blob->Next = nullptr;
+  Blob->Prev = nullptr;
+
+  return Blob;
+}
+
+// Print the entire linked list of blobs
+void PrintList(TextBlob* Blob) {
+  size_t i = 0;
+  TextBlob* Cur = Blob;
+  while (Cur) {
+    printf("Blob #: %zu, \"%s\"\n", i++, Cur->Text);
+    Cur = Cur->Next;
+  }
+}
+
 int main(int argc, char* argv[argc + 1]) {
+  TextBlob* Head = CreateBlob("Hello, ");
+  Head->Next = CreateBlob("world!");
+  Head->Next->Prev = Head;
+
+  printf("Original list:\n");
+  PrintList(Head);
+
+  printf("Splitting the first blob at index 2:\n");
+  SplitText(Head, 2);
+  PrintList(Head);
+
   return 0;
 }

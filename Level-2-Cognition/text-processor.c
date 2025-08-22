@@ -1,6 +1,8 @@
+#include <sys/ioctl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 typedef struct TextBlob TextBlob;
 struct TextBlob {
@@ -9,6 +11,55 @@ struct TextBlob {
   TextBlob* Next;
   TextBlob* Prev;
 };
+
+int GetTerminalRows() {
+  struct winsize w;
+  if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == -1) {
+    perror("ioctl failed");
+    return -1;
+  }
+  return w.ws_row;
+}
+
+TextBlob* CreateBlob(const char* s) {
+  if (!s)
+    return nullptr;
+
+  TextBlob* Blob = malloc(sizeof(TextBlob));
+  if (!Blob) {
+    perror("malloc failed for Blob!");
+    exit(1);
+  }
+
+  size_t Length = strlen(s);
+  char* TempText = malloc(Length + 1);
+  if (!TempText) {
+    perror("malloc failed for TempText!");
+    free(Blob);
+    exit(1);
+  }
+
+  memcpy(TempText, s, Length);
+  TempText[Length] = '\0';
+
+  Blob->Text = TempText;
+  Blob->Len = Length;
+  Blob->Next = nullptr;
+  Blob->Prev = nullptr;
+
+  return Blob;
+}
+
+void DestroyList(TextBlob* Head) {
+  TextBlob* Current = Head;
+  TextBlob* NextBlob = Head->Next;
+  while (Current) {
+    NextBlob = Current->Next;
+    free(Current->Text);
+    free(Current);
+    Current = NextBlob;
+  }
+}
 
 void SplitText(TextBlob *FirstBlob, size_t Index) {
   if (Index >= FirstBlob->Len)
@@ -93,51 +144,56 @@ void JoinConsecutive(TextBlob* Blob) {
   free(TmpBlob);
 }
 
-TextBlob* CreateBlob(const char* s) {
-  if (!s)
+// This function splits the given blob at the first newline character and
+// returns the next blob, or nullptr if there's no newline character.
+TextBlob* SplitAtFirstNewline(TextBlob* Blob) {
+  if (!Blob || !Blob->Text)
     return nullptr;
 
-  TextBlob* Blob = malloc(sizeof(TextBlob));
-  if (!Blob) {
-    perror("malloc failed for Blob!");
-    exit(1);
+  for (size_t i = 0; i < Blob->Len; ++i) {\
+    if (Blob->Text[i] == '\n') {
+      SplitText(Blob, i);
+      Blob->Text[i] = '\0'; // Remove the newline character from the blob.
+                            // That way, each blob represents one line.
+      return Blob->Next;
+    }
   }
-
-  size_t Length = strlen(s);
-  char* TempText = malloc(Length + 1);
-  if (!TempText) {
-    perror("malloc failed for TempText!");
-    free(Blob);
-    exit(1);
-  }
-
-  memcpy(TempText, s, Length);
-  TempText[Length] = '\0';
-
-  Blob->Text = TempText;
-  Blob->Len = Length;
-  Blob->Next = nullptr;
-  Blob->Prev = nullptr;
-
-  return Blob;
+  return nullptr;
 }
 
-void DestroyList(TextBlob* Head) {
-  TextBlob* Current = Head;
-  TextBlob* NextBlob = Head->Next;
-  while (Current) {
-    NextBlob = Current->Next;
-    free(Current->Text);
-    free(Current);
-    Current = NextBlob;
-  }
+// Function that processes the entire string s, diving it into blobs, one
+// blob per line. It returns the head of the resulting linked list.
+TextBlob* ProcessText(const char* s) {
+  // Load the entire string into one big blob. Then, split it as long as we can
+  // find a new newline character '\n'
+  TextBlob* Head = CreateBlob(s);
+  TextBlob* Cur = Head;
+
+  while (Cur)
+    Cur = SplitAtFirstNewline(Cur);
+
+  return Head;
 }
 
 // Print the entire linked list of blobs
-void PrintList(TextBlob* Blob) {
+void PrintList(TextBlob* Head) {
   size_t i = 0;
-  TextBlob* Cur = Blob;
+  TextBlob* Cur = Head;
   while (Cur) {
+    printf("Blob #: %zu, \"%s\"\n", i++, Cur->Text);
+    Cur = Cur->Next;
+  }
+}
+
+// Print the text blobs until the entire text prints, or we reach terminal size
+void PrintLimited(TextBlob* Head) {
+  size_t i = 0;
+  TextBlob* Cur = Head;
+  int MaxLines = GetTerminalRows();
+  if (MaxLines == -1)
+    return;
+
+  while (Cur && i < MaxLines) {
     printf("Blob #: %zu, \"%s\"\n", i++, Cur->Text);
     Cur = Cur->Next;
   }
@@ -187,6 +243,14 @@ int main(int argc, char* argv[argc + 1]) {
   printf("\nAfter attempting to split at index 0:\n");
   PrintList(Head2);
   DestroyList(Head2);
+
+  // Test Case 2: Printing the text divided by lines
+  printf("\n--- Test Case 3: Printing the text divided by lines ---\n");
+  const char* s = "first line\n second line \n third line \n \n two lines later";
+  TextBlob* Head3 = ProcessText(s);
+  PrintLimited(Head3);
+  DestroyList(Head3);
+  
 
   return 0;
 }

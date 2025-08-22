@@ -122,6 +122,17 @@ TextBlob* CreateBlob(const char* s) {
   return Blob;
 }
 
+void DestroyList(TextBlob* Head) {
+  TextBlob* Current = Head;
+  TextBlob* NextBlob = Head->Next;
+  while (Current) {
+    NextBlob = Current->Next;
+    free(Current->Text);
+    free(Current);
+    Current = NextBlob;
+  }
+}
+
 // Print the entire linked list of blobs
 void PrintList(TextBlob* Blob) {
   size_t i = 0;
@@ -143,7 +154,39 @@ int main(int argc, char* argv[argc + 1]) {
   printf("Splitting the first blob at index 2:\n");
   SplitText(Head, 2);
   PrintList(Head);
+  DestroyList(Head);
 
-  // Should think about release the memory when exiting
+  // Test Case 1: Split and Join with intermediate blobs
+  printf("\n--- Test Case 1: Splitting and Joining an Intermediate Blob ---\n");
+  TextBlob* Head1 = CreateBlob("One");
+  Head1->Next = CreateBlob("Middle");
+  Head1->Next->Prev = Head1;
+  Head1->Next->Next = CreateBlob("Three");
+  Head1->Next->Next->Prev = Head1->Next;
+
+  printf("Original list:\n");
+  PrintList(Head1);
+
+  // Split the middle blob
+  SplitText(Head1->Next, 3);
+  printf("\n After splitting 'Middle' at index 3:\n");
+  PrintList(Head1);
+
+  // Join the two new blobs
+  JoinConsecutive(Head1->Next);
+  printf("\nAfter joining the two new blobs:\n");
+  PrintList(Head1);
+  DestroyList(Head1);
+
+  // Test Case 2: Splitting an empty string
+  printf("\n--- Test Case 2: Splitting an Empty String ---\n");
+  TextBlob* Head2 = CreateBlob("");
+  PrintList(Head2);
+
+  SplitText(Head2, 0);
+  printf("\nAfter attempting to split at index 0:\n");
+  PrintList(Head2);
+  DestroyList(Head2);
+
   return 0;
 }

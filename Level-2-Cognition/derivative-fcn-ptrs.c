@@ -10,6 +10,8 @@ struct Polynomial {
   double* coeff; // array of coefficients, must be of size deg + 1
 };
 
+static Polynomial* globalPolynomialPtr = nullptr;
+
 double centeredDiffReal(double (*f)(double), double x0) {
   if (!f)
     perror("Wrong function pointer!");
@@ -34,6 +36,9 @@ void centeredDiffComplex(double complex (*f)(double complex x), double complex x
 // Root-finding algorithm implementing Newton's method, where x0 is the
 // starting point of the iterations
 double findZero(double (*f)(double), double x0) {
+  if (fabs(f(x0)) < 1e-14)
+    return x0;
+
   const double tol = 1e-10; // tolerance for the iterations
   double err = tol + 1;
   size_t i = 0;
@@ -75,10 +80,14 @@ double evalPoly(Polynomial* p, double x) {
   return val;
 }
 
-// Divide polynomial p by (x - root), and return the resulting polynomial
+double evalPolyWrapper(double x) {
+  return evalPoly(globalPolynomialPtr, x);
+}
+
+// Divide polynomial p by (x - root), and return the resulting polynomial.
+// Also, free the memory occupied by p.
 Polynomial* deflatePoly(Polynomial*p, double root) {
   Polynomial* q = malloc(sizeof(Polynomial));
-  printf("1\n");
   size_t NewDeg = p->deg - 1;
   q->deg = NewDeg;
   q->coeff = malloc((NewDeg + 1) * sizeof(double));
@@ -87,30 +96,53 @@ Polynomial* deflatePoly(Polynomial*p, double root) {
   for (size_t i = p->deg - 1; i > 0; --i)
     q->coeff[i - 1] = q->coeff[i] * root + p->coeff[i];   
 
+  free(p->coeff);
+  free(p);
   return q;
+}
+
+// Find all zeros of the polynomial p. Starting point for the iterations: x = 0
+void findAllZerosPoly(Polynomial *p) {
+  if (!p) {
+    printf("Null pointer passed!\n");
+    return;
+  }
+
+  globalPolynomialPtr = p;
+  size_t deg = p->deg;
+
+  for (size_t i = 1; i <= deg; ++i) {
+    double root = findZero(evalPolyWrapper, 1.0);
+    printf("Root #%zu: %f\n", i, root);
+    p = deflatePoly(p, root);
+    globalPolynomialPtr = p;
+  }
+  free(p->coeff);
+  free(p);
 }
 
 int main(int argc, char* argv[argc + 1]) {
   //complex (*g)(complex) = csin;
   //centeredDiffComplex(g, CMPLX(0.0, 1.0));
 
-  double (*f)(double) = cos;
-  double x0 = 1.0;
-  double root = findZero(f, x0);
-  printf("Found root of cosine: %f\n", root);
+  //double (*f)(double) = cos;
+  //double x0 = 1.0;
+  //double root = findZero(f, x0);
+  //printf("Found root of cosine: %f\n", root);
 
-  Polynomial p;
-  p.deg = 3;
-  p.coeff = malloc(p.deg * sizeof(double));
-  p.coeff[0] = -4.0;
-  p.coeff[1] = 0.0;
-  p.coeff[2] = 3.0;
-  p.coeff[3] = 2.0;
+  Polynomial* p = malloc(sizeof(Polynomial));
+  p->deg = 3;
+  p->coeff = malloc((p->deg + 1) * sizeof(double));
+  p->coeff[0] = -3;
+  p->coeff[1] = -13.0;
+  p->coeff[2] = 0.0;
+  p->coeff[3] = 16.0;
   //double val = evalPoly(&p, 2.0);
-  Polynomial* q = deflatePoly(&p, -1.0);
+  //Polynomial* q = deflatePoly(&p, -1.0);
+  findAllZerosPoly(p);
   
-  free(p.coeff);
-  free(q->coeff);
-  free(q);
+  //free(p.coeff);
+  //free(q->coeff);
+  //free(q);
   return 0;
 }

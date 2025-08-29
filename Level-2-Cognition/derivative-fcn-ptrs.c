@@ -66,20 +66,19 @@ double findZero(double (*f)(double), double x0) {
   return x1;
 }
 
-// Evaluate polynomial p at x
+// Evaluate polynomial p at x using Horner's method
 double evalPoly(Polynomial* p, double x) {
-  double val = p->coeff[0];
   size_t degree = p->deg;
-  double x0 = x;
+  double val = p->coeff[degree];
 
-  for (size_t i = 1; i <= degree; ++i) {
-    val += p->coeff[i] * x0;
-    x0 *= x;
+  for (size_t i = degree; i-- > 0;) {
+    val = p->coeff[i] + val * x;
   }
 
   return val;
 }
 
+// Wrapper for polynomial evaluation, to be passed as an argument of findZero
 double evalPolyWrapper(double x) {
   return evalPoly(globalPolynomialPtr, x);
 }
@@ -87,6 +86,11 @@ double evalPolyWrapper(double x) {
 // Divide polynomial p by (x - root), and return the resulting polynomial.
 // Also, free the memory occupied by p.
 Polynomial* deflatePoly(Polynomial*p, double root) {
+  if (p->deg == 0) {
+    fprintf(stderr, "Cannot deflate a constant polynomial!\n");
+    return nullptr;
+  }
+
   Polynomial* q = malloc(sizeof(Polynomial));
   size_t NewDeg = p->deg - 1;
   q->deg = NewDeg;
@@ -112,7 +116,7 @@ void findAllZerosPoly(Polynomial *p) {
   size_t deg = p->deg;
 
   for (size_t i = 1; i <= deg; ++i) {
-    double root = findZero(evalPolyWrapper, 1.0);
+    double root = findZero(evalPolyWrapper, (double)i);
     printf("Root #%zu: %f\n", i, root);
     p = deflatePoly(p, root);
     globalPolynomialPtr = p;
@@ -137,12 +141,15 @@ int main(int argc, char* argv[argc + 1]) {
   p->coeff[1] = -13.0;
   p->coeff[2] = 0.0;
   p->coeff[3] = 16.0;
-  //double val = evalPoly(&p, 2.0);
-  //Polynomial* q = deflatePoly(&p, -1.0);
   findAllZerosPoly(p);
+
+  Polynomial* q = malloc(sizeof(Polynomial));
+  q->deg = 2;
+  q->coeff = malloc((q->deg + 1) * sizeof(double));
+  q->coeff[0] = 0.0;
+  q->coeff[1] = 0.0;
+  q->coeff[2] = 1.0;
+  findAllZerosPoly(q);
   
-  //free(p.coeff);
-  //free(q->coeff);
-  //free(q);
   return 0;
 }

@@ -25,8 +25,6 @@ void mergeArrays(void* A, size_t size, compareFcn* cmp, size_t l,
   // merge two two arrays, so that A is sorted from l to r
 
   // We will copy the sorted arrays to merge into two temporary arrays
-  size_t i, j, k;
-
   size_t n1 = m - l + 1;
   size_t n2 = r - m;
 
@@ -36,11 +34,7 @@ void mergeArrays(void* A, size_t size, compareFcn* cmp, size_t l,
   memcpy((char*)L, (char*)A + l * size, n1 * size);
   memcpy((char*)R, (char*)A + (m + 1) * size, n2 * size);
 
-  /*for (i = 0; i < n1; ++i)
-    L[i] = A[l + i];
-  for (j = 0; j < n2; ++j)
-    R[j] = A[m + 1 + j];*/
-
+  size_t i, j, k;
   i = 0;
   j = 0;
   k = l;
@@ -54,25 +48,16 @@ void mergeArrays(void* A, size_t size, compareFcn* cmp, size_t l,
     }
     else {
       memcpy((char*)A + k * size, (char*)R + j * size, size);
-      //A[k] = R[j];
       ++j;
     }
     ++k;
   }
 
-  while (i < n1) {
-    memcpy((char*)A + k * size, (char*)L + i * size, size);
-    //A[k] = L[i];
-    ++i;
-    ++k;
-  }
+  if (i < n1)
+    memcpy((char*)A + k * size, (char*)L + i * size, (n1 - i) * size);
 
-  while (j < n2) {
-    memcpy((char*)A + k * size, (char*)R + j * size, size);
-    //A[k] = R[j];
-    ++j;
-    ++k;
-  }
+  if (j < n2)
+    memcpy((char*)A + k * size, (char*)R + j * size, (n2 - j) * size);
 
   free(L);
   free(R);

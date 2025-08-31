@@ -43,7 +43,6 @@ void mergeArrays(void* A, size_t size, compareFcn* cmp, size_t l,
   while (i < n1 &&  j < n2) {
     if (cmp((char*)L + i * size, (char*)R + j * size) <= 0) {
       memcpy((char*)A + k * size, (char*)L + i * size, size);
-      //A[k] = L[i];
       ++i;
     }
     else {
@@ -63,8 +62,7 @@ void mergeArrays(void* A, size_t size, compareFcn* cmp, size_t l,
   free(R);
 }
 
-void mergeSort(void* A, size_t size, compareFcn* cmp, size_t l,
-               size_t r) {
+void mergeSort(void* A, size_t size, compareFcn* cmp, size_t l, size_t r) {
   // If the size is one, return
   if (r <= l)
     return;
@@ -84,40 +82,49 @@ void mergeSortSigned(size_t n, signed A[n]) {
 }
 
 // -------------------------Quicksort-related functions------------------------
-int partitionLomuto(int A[], int l, int r) {
+int partitionLomuto(void* A, size_t size, compareFcn* cmp, size_t l,
+                    size_t r) {
+  size_t i = l;
+  char* pivot = malloc(size);
+  memcpy(pivot, (char*)A + r * size, size);
+  char* temp = malloc(size);
 
-  int pivot = A[r];
-
-  int i = l;
-  int temp;
-
-  for (int j = i; j < r; ++j) {
-    if (A[j] < pivot) {
+  for (size_t j = i; j < r; ++j) {
+    if (cmp((char*)A + j * size, pivot) <= 0) {
       // perform the swap
-      temp = A[i];
-      A[i] = A[j];
-      A[j] = temp;
+      memcpy(temp, (char*)A + i * size, size);
+      memcpy((char*)A + i * size, (char*)A + j * size, size);
+      memcpy((char*)A + j * size, temp, size);
       ++i;
     }
   }
 
   // now, all the elements with indices < i, are smaller than the pivot
   // place the pivot at the position i
-  A[r] = A[i];
-  A[i] = pivot;
+  memcpy((char*)A + r * size, (char*)A + i * size, size);
+  memcpy((char*)A + i * size, pivot, size);
+  free(temp);
+  free(pivot);
+
   return i;
 }
 
-void quickSort(int A[], int l, int r) {
+void quickSort(void* A, size_t size, compareFcn* cmp, size_t l, size_t r) {
   if (l < r) {
-    int m = partitionLomuto(A, l, r);
-    quickSort(A, l, m - 1);
-    quickSort(A, m + 1, r);
+    size_t m = partitionLomuto(A, size, cmp, l, r);
+    quickSort(A, size, cmp, l, m - 1);
+    quickSort(A, size, cmp, m + 1, r);
   }
 }
 
+void quickSortSigned(size_t n, signed A[n]) {
+  quickSort(A, sizeof A[0], compareSigned, 0, n - 1);
+}
+
 int main() {
-  signed A[7] = {
+  constexpr size_t n = 7;
+
+  signed A[n] = {
     [0] = 5,
     [1] = 13,
     [2] = 6,
@@ -127,13 +134,20 @@ int main() {
     [6] = 8,
   };
 
-  mergeSortSigned(7, A);
-  printf("Printing the array after calling quickSort: A = [ ");
-  for (int i = 0; i <=6; ++i)
+  signed B[n];
+  memcpy(B, A, n * sizeof(signed));
+
+  mergeSortSigned(n, A);
+  printf("Printing the array after calling merge sort: A = [ ");
+  for (int i = 0; i < n; ++i)
     printf("%d ", A[i]);
+  printf("]\n");
+
+  quickSortSigned(n, B);
+  printf("Printing the array after calling quick sort: A = [ ");
+  for (int i = 0; i < n; ++i)
+    printf("%d ", B[i]);
   printf("]\n");
 
   return 0;
 }
-
-

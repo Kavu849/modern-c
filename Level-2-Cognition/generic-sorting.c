@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 // Generic comparison function. The convention is that it returns a negative
 // number if a < b, a positive number if a > b, and 0 if a == b
@@ -121,6 +122,11 @@ void quickSortSigned(size_t n, signed A[n]) {
   quickSort(A, sizeof A[0], compareSigned, 0, n - 1);
 }
 
+// qsort helper function
+void qsortSigned(size_t n, signed A[n]) {
+  qsort(A, n, sizeof A[0], compareSigned);
+}
+
 int main() {
   constexpr size_t n = 7;
 
@@ -149,5 +155,43 @@ int main() {
     printf("%d ", B[i]);
   printf("]\n");
 
+  // Sorting for larger array sizes
+  srand(time(0));
+  size_t m = 100000000;
+  printf("Size of array: %zu\n", m);
+
+  // Allocate memory for the arrays
+  signed* arr1 = malloc(m * sizeof(signed));
+  signed* arr2 = malloc(m * sizeof(signed));
+  signed* arr3 = malloc(m * sizeof(signed));
+
+  // Populate the array with numbers from range [0, n], and copy the elements
+  // to the second array
+  for (size_t i = 0; i < m; ++i)
+    arr1[i] = rand() % (m + 1);
+  memcpy(arr2, arr1, m * sizeof(signed));
+  memcpy(arr3, arr1, m * sizeof(signed));
+
+  clock_t start = clock();
+  mergeSortSigned(m, arr1);
+  clock_t end = clock();
+  double diff = (double)(end - start) / CLOCKS_PER_SEC;
+  printf("Time for sorting using mergeSortSigned: %.9f\n", diff);
+
+  start = clock();
+  quickSortSigned(m, arr2);
+  end = clock();
+  diff = (double)(end - start) / CLOCKS_PER_SEC;
+  printf("Time for sorting using quickSortSigned: %.9f\n", diff);
+
+  start = clock();
+  qsortSigned(m, arr3);
+  end = clock();
+  diff = (double)(end - start) / CLOCKS_PER_SEC;
+  printf("Time for sorting using qsortSigned: %.9f\n", diff);
+
+  free(arr1);
+  free(arr2);
+  free(arr3);
   return 0;
 }

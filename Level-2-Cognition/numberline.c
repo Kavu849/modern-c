@@ -62,6 +62,34 @@ char* fgetline(size_t size, char s[restrict size], FILE*restrict stream) {
   return ret;
 }
 
+char* fgetlineNoLimit(FILE*restrict stream) {
+  size_t size = 256; // size of allocation (will be double every iteration)
+  size_t len = 0;    // length of the string read so far
+  char* line = malloc(size);
+
+  for (;;) {
+    if (!fgets(line + len, size - len, stream)) {
+      free(line);
+      return nullptr;
+    }
+
+    len += strlen(line + len); // increase the length by the chunk just read
+
+    if (len > 0 && line[len - 1] == '\n') {
+      line[len - 1] = 0;
+      return line;
+    }
+
+    size *= 2;
+    char* tmp = realloc(line, size);
+    if (!tmp) {
+      free(line);
+      return nullptr;
+    }
+    line = tmp;
+  }
+}
+
 static inline int error_cleanup(int err, int prev) {
   errno = prev;
   return -err;
@@ -117,9 +145,9 @@ int fprintnumbers(FILE*restrict stream, char const form[restrict static 1],
 }
 
 int main(void) {
-  char lbuf[256];
   for (;;) {
-    if (fgetline(sizeof lbuf, lbuf, stdin)) {
+    char* lbuf = fgetlineNoLimit(stdin);
+    if (lbuf) {
       size_t n;
       size_t* nums = numberline(strlen(lbuf) + 1, lbuf, &n, 0);
       if (nums) {
@@ -127,17 +155,7 @@ int main(void) {
         if (ret < 0) return EXIT_FAILURE;
         free(nums);
       }
-    } else {
-      if (lbuf[0]) {  /* a partial line has been read */
-        for (;;) {
-          int c = getc(stdin);
-          if (c == EOF) return EXIT_FAILURE;
-          if (c == '\n') {
-            fprintf(stderr, "line too long: %s\n", lbuf);
-            break;
-          }
-        }
-      } else break;   /* regular end of input */
-    }
+    } else break; 
   }
 }
+

@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,6 +18,39 @@ int fillBuff(FILE* stream,  char** currPos, char* endBuf) {
     ++ret;
   }
   return ret;
+}
+
+// Read bufBeg one character at a time and search for 'word' in the buffer.
+// For every found occurrence, replace it with 'replacement' and increase
+// the counter.
+void processBuf(FILE* stream, const char* word, const char* replacement,
+                  const char* bufBeg, const char* dangerPos, size_t* count) {
+  if (!word || !bufBeg || !dangerPos) {
+    fprintf(stderr, "Null pointer in searchBuf, result compromised!\n");
+    return;
+  }
+
+  for (const char* c = bufBeg; c != dangerPos; ++c) {
+    if ((c != bufBeg) && (isalnum((unsigned char)*(c-1))))
+      continue;
+
+    const char* cpos = c;
+    const char* wpos = word;
+
+    while (*wpos && *cpos == *wpos) {
+      ++cpos;
+      ++wpos;
+    }
+
+    if (!*wpos && (isspace((unsigned char)*cpos) || ispunct((unsigned char)*cpos) || *cpos == '\0')) {
+      fprintf(stdout, "%s", replacement);
+      ++(*count);
+      c = cpos;
+    }
+    else {
+      fprintf(stdout, "%c", *c);
+    }
+  }
 }
 
 int main(int argc, char* argv[argc+1]) {
@@ -54,31 +88,31 @@ int main(int argc, char* argv[argc+1]) {
     return EXIT_FAILURE;
   }
 
-  char* bufBeg = &buf[0];
-  char* endBuf = buf + 256;
+  const char* bufBeg = &buf[0];
+  const char* endBuf = buf + 256;
+  const char* dangerPos = endBuf - len;
+  size_t count = 0;
   char* currPos = bufBeg;
   for(;;) {
     // Fill the buffer and return the number of read characters
     int read = fillBuff(stdin, &currPos, endBuf);
     // If we are at the EOF, handle it
-    // ===== HERE HANDLE EOF =====
-    if (read == -1) {
-      printf("Reached end of file. Buffer contents:\n");
-      for (const char* tmpBuf = bufBeg; tmpBuf != currPos; ++tmpBuf) {
-        printf("%c", *tmpBuf);
-      }
+    if (read == -1) {   
+      processBuf(stdout, word, replacement, bufBeg, currPos, &count);
       break;
     }
-    printf("Read %d characters. Buffer contents so far:\n", read);
-    for (const char* tmpBuf = bufBeg; tmpBuf != currPos; ++tmpBuf) {
-      printf("%c", *tmpBuf);
-    }
-    currPos = bufBeg;
-    
-    // Search for 'word', until the danger zone, and return the number of
-    // occurrences
-    //size_t n = searchBuf(
+ 
+    // Scan the buffer for occurrences of 'word' and dump the (possibly changed)
+    // text to stdout, incrementing the counter
+    processBuf(stdout, word, replacement, bufBeg, dangerPos, &count);
+
+    // Move the danger zone to the beginning of the buffer and currPos to the
+    // end of the danger zone
+    memmove(buf, dangerPos, len);
+    currPos = bufBeg + len;
   }
+  fprintf(stdout, "\nFound %ld occurrences of the word \"%s\", and replaced it "
+          "with the word \"%s\".\n", count, word, replacement);
 
   return EXIT_SUCCESS;
 }

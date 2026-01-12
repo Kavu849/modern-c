@@ -1,11 +1,9 @@
 #include <stdio.h>
 #include <stddef.h>
 
-double sumIt(size_t n, double* a);
-
 #define SUM_DOUBLE(...) sumIt(sizeof((double[]){ __VA_ARGS__ }) / sizeof(double), (double[]) { __VA_ARGS__ })
 
-inline double sumIt(size_t n, double* a) {
+static inline double sumIt(size_t n, double* a) {
   double ret = 0.0;
   for (size_t i = 0; i < n; ++i) {
     ret += a[i];

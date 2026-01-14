@@ -49,12 +49,12 @@ static inline signed long long minsll(signed long long a, signed long long b) {
 }
 
 int main(int argc, char* argv[argc+1]){
-  double a = 1.0;
+  float a = 1.0;
   double b = -1.0;
   printf("Minimum of %g and %g is %g\n", a, b, min(a, b));
   
   unsigned long long c = 45;
-  unsigned long long d = 90;
-  printf("Minimum of %d and %d is %d\n", c, d, min(c, d));
+  unsigned long d = 90;
+  printf("Minimum of %llu and %lu is %llu\n", c, d, min(c, d));
   return 0;
 }

@@ -1,7 +1,8 @@
+#include <stdint.h>
 #include <stdio.h>
 
 #define min(A, B)                     \
-_Generic((A)+(B),                     \
+_Generic(1 ? (A) : (B),               \
          float: minf,                 \
          long double: minl,           \
          unsigned int: minui,         \
@@ -10,6 +11,7 @@ _Generic((A)+(B),                     \
          signed int:  minsi,          \
          signed long: minsl,          \
          signed long long: minsll,    \
+         void *: minptr,              \
          default: mind) ((A), (B))
 
 static inline double mind(double a, double b) {
@@ -48,6 +50,10 @@ static inline signed long long minsll(signed long long a, signed long long b) {
   return a < b ? a : b;
 }
 
+static inline void* minptr(void* a, void* b) {
+  return (uintptr_t)a < (uintptr_t)b ? a : b;
+}
+
 int main(int argc, char* argv[argc+1]){
   float a = 1.0;
   double b = -1.0;
@@ -56,5 +62,7 @@ int main(int argc, char* argv[argc+1]){
   unsigned long long c = 45;
   unsigned long d = 90;
   printf("Minimum of %llu and %lu is %llu\n", c, d, min(c, d));
+
+  printf("Minimum of pointers %p and %p is %p\n", &c, &d, min((void*)&c, (void*)&d));
   return 0;
 }
